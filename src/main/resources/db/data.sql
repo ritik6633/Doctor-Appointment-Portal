@@ -63,9 +63,14 @@ VALUES
   (1, 1, 5, 1, CURDATE(), '10:15:00', 'BOOKED', 'Chest discomfort')
 ON DUPLICATE KEY UPDATE status=VALUES(status);
 
+-- Sample completed appointment (enables review creation demo)
+INSERT INTO appointments (id, doctor_id, patient_id, hospital_id, appointment_date, appointment_time, status, symptoms)
+VALUES
+  (2, 2, 6, 1, CURDATE(), '16:15:00', 'COMPLETED', 'Skin rash')
+ON DUPLICATE KEY UPDATE status=VALUES(status);
+
 -- Sample review
 INSERT INTO reviews (id, doctor_id, patient_id, rating, comment)
 VALUES
   (1, 1, 5, 5, 'Very professional and explained everything clearly.')
 ON DUPLICATE KEY UPDATE rating=VALUES(rating);
-

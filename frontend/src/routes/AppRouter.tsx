@@ -4,6 +4,8 @@ import { RegisterPage } from '../auth/RegisterPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { PatientDashboard } from '../dashboards/patient/PatientDashboard';
+import { BookAppointmentPage } from '../dashboards/patient/BookAppointmentPage';
+import { MyAppointmentsPage } from '../dashboards/patient/MyAppointmentsPage';
 import { DoctorDashboard } from '../dashboards/doctor/DoctorDashboard';
 import { HospitalAdminDashboard } from '../dashboards/hospitalAdmin/HospitalAdminDashboard';
 import { DeveloperAdminDashboard } from '../dashboards/developerAdmin/DeveloperAdminDashboard';
@@ -22,6 +24,22 @@ export function AppRouter() {
             element={
               <DashboardLayout>
                 <PatientDashboard />
+              </DashboardLayout>
+            }
+          />
+          <Route
+            path="/patient/book"
+            element={
+              <DashboardLayout>
+                <BookAppointmentPage />
+              </DashboardLayout>
+            }
+          />
+          <Route
+            path="/patient/appointments"
+            element={
+              <DashboardLayout>
+                <MyAppointmentsPage />
               </DashboardLayout>
             }
           />
@@ -65,4 +83,3 @@ export function AppRouter() {
     </BrowserRouter>
   );
 }
-

@@ -8,7 +8,11 @@ const drawerWidth = 260;
 function navItemsForRole(role: Role) {
   switch (role) {
     case 'PATIENT':
-      return [{ label: 'Dashboard', to: '/patient/dashboard' }];
+      return [
+        { label: 'Dashboard', to: '/patient/dashboard' },
+        { label: 'Book Appointment', to: '/patient/book' },
+        { label: 'My Appointments', to: '/patient/appointments' },
+      ];
     case 'DOCTOR':
       return [{ label: 'Dashboard', to: '/doctor/dashboard' }];
     case 'HOSPITAL_ADMIN':
@@ -77,4 +81,3 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     </Box>
   );
 }
-

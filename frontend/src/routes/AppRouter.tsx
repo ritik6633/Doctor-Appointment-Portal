@@ -6,9 +6,15 @@ import { DashboardLayout } from '../layouts/DashboardLayout';
 import { PatientDashboard } from '../dashboards/patient/PatientDashboard';
 import { BookAppointmentPage } from '../dashboards/patient/BookAppointmentPage';
 import { MyAppointmentsPage } from '../dashboards/patient/MyAppointmentsPage';
+import { DoctorReviewsPage } from '../dashboards/patient/DoctorReviewsPage';
 import { DoctorDashboard } from '../dashboards/doctor/DoctorDashboard';
+import { MyDoctorAppointmentsPage } from '../dashboards/doctor/MyDoctorAppointmentsPage';
 import { HospitalAdminDashboard } from '../dashboards/hospitalAdmin/HospitalAdminDashboard';
 import { DeveloperAdminDashboard } from '../dashboards/developerAdmin/DeveloperAdminDashboard';
+import { ManageDepartmentsPage } from '../dashboards/hospitalAdmin/ManageDepartmentsPage';
+import { AddDoctorPage } from '../dashboards/hospitalAdmin/AddDoctorPage';
+import { ManageAvailabilityPage } from '../dashboards/hospitalAdmin/ManageAvailabilityPage';
+import { ManageHospitalsPage } from '../dashboards/developerAdmin/ManageHospitalsPage';
 
 export function AppRouter() {
   return (
@@ -43,6 +49,14 @@ export function AppRouter() {
               </DashboardLayout>
             }
           />
+          <Route
+            path="/patient/reviews"
+            element={
+              <DashboardLayout>
+                <DoctorReviewsPage />
+              </DashboardLayout>
+            }
+          />
         </Route>
 
         <Route element={<ProtectedRoute allowed={['DOCTOR']} />}>
@@ -51,6 +65,14 @@ export function AppRouter() {
             element={
               <DashboardLayout>
                 <DoctorDashboard />
+              </DashboardLayout>
+            }
+          />
+          <Route
+            path="/doctor/appointments"
+            element={
+              <DashboardLayout>
+                <MyDoctorAppointmentsPage />
               </DashboardLayout>
             }
           />
@@ -65,6 +87,30 @@ export function AppRouter() {
               </DashboardLayout>
             }
           />
+          <Route
+            path="/hospital-admin/departments"
+            element={
+              <DashboardLayout>
+                <ManageDepartmentsPage />
+              </DashboardLayout>
+            }
+          />
+          <Route
+            path="/hospital-admin/doctors"
+            element={
+              <DashboardLayout>
+                <AddDoctorPage />
+              </DashboardLayout>
+            }
+          />
+          <Route
+            path="/hospital-admin/availability"
+            element={
+              <DashboardLayout>
+                <ManageAvailabilityPage />
+              </DashboardLayout>
+            }
+          />
         </Route>
 
         <Route element={<ProtectedRoute allowed={['DEVELOPER_ADMIN']} />}>
@@ -73,6 +119,14 @@ export function AppRouter() {
             element={
               <DashboardLayout>
                 <DeveloperAdminDashboard />
+              </DashboardLayout>
+            }
+          />
+          <Route
+            path="/developer-admin/hospitals"
+            element={
+              <DashboardLayout>
+                <ManageHospitalsPage />
               </DashboardLayout>
             }
           />

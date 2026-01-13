@@ -12,13 +12,25 @@ function navItemsForRole(role: Role) {
         { label: 'Dashboard', to: '/patient/dashboard' },
         { label: 'Book Appointment', to: '/patient/book' },
         { label: 'My Appointments', to: '/patient/appointments' },
+        { label: 'Doctor Reviews', to: '/patient/reviews' },
       ];
     case 'DOCTOR':
-      return [{ label: 'Dashboard', to: '/doctor/dashboard' }];
+      return [
+        { label: 'Dashboard', to: '/doctor/dashboard' },
+        { label: 'My Appointments', to: '/doctor/appointments' },
+      ];
     case 'HOSPITAL_ADMIN':
-      return [{ label: 'Dashboard', to: '/hospital-admin/dashboard' }];
+      return [
+        { label: 'Dashboard', to: '/hospital-admin/dashboard' },
+        { label: 'Create Department', to: '/hospital-admin/departments' },
+        { label: 'Add Doctor', to: '/hospital-admin/doctors' },
+        { label: 'Manage Availability', to: '/hospital-admin/availability' },
+      ];
     case 'DEVELOPER_ADMIN':
-      return [{ label: 'Dashboard', to: '/developer-admin/dashboard' }];
+      return [
+        { label: 'Dashboard', to: '/developer-admin/dashboard' },
+        { label: 'Manage Hospitals', to: '/developer-admin/hospitals' },
+      ];
   }
 }
 

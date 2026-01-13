@@ -5,18 +5,18 @@ REM ------------------------------------------------------------
 REM Project helper: Run/build using JDK 17.
 REM ------------------------------------------------------------
 
-REM Try common JDK 17 install locations (Temurin/Oracle/Microsoft/Zulu/Corretto).
-set "CANDIDATE_1=%ProgramFiles%\Eclipse Adoptium\jdk-17*"
-set "CANDIDATE_2=%ProgramFiles%\Java\jdk-17*"
-set "CANDIDATE_3=%ProgramFiles%\Microsoft\jdk-17*"
-set "CANDIDATE_4=%ProgramFiles%\Zulu\zulu-17*"
-set "CANDIDATE_5=%ProgramFiles%\Amazon Corretto\jdk17*"
+REM Prefer a known Temurin (Eclipse Adoptium) install path first.
+set "JAVA17_HOME=%ProgramFiles%\Eclipse Adoptium\jdk-17.0.17.10-hotspot"
 
-set "JAVA17_HOME="
-for /d %%D in (%CANDIDATE_1% %CANDIDATE_2% %CANDIDATE_3% %CANDIDATE_4% %CANDIDATE_5%) do (
+REM Fallback: try to auto-detect best matching JDK 17 under Program Files
+if not exist "%JAVA17_HOME%\bin\java.exe" (
+  set "JAVA17_HOME="
+  for /f "delims=" %%D in ('dir /b /ad "%ProgramFiles%\Eclipse Adoptium\jdk-17*" 2^>nul') do (
+    if not defined JAVA17_HOME set "JAVA17_HOME=%ProgramFiles%\Eclipse Adoptium\%%D"
+  )
   if not defined JAVA17_HOME (
-    if exist "%%D\bin\java.exe" (
-      set "JAVA17_HOME=%%D"
+    for /f "delims=" %%D in ('dir /b /ad "%ProgramFiles%\Java\jdk-17*" 2^>nul') do (
+      if not defined JAVA17_HOME set "JAVA17_HOME=%ProgramFiles%\Java\%%D"
     )
   )
 )
@@ -35,11 +35,20 @@ if not defined JAVA17_HOME (
   exit /b 1
 )
 
+if not exist "%JAVA17_HOME%\bin\java.exe" (
+  echo.
+  echo ERROR: JAVA17_HOME was detected but java.exe was not found:
+  echo   %JAVA17_HOME%
+  echo.
+  exit /b 1
+)
+
 set "JAVA_HOME=%JAVA17_HOME%"
 set "PATH=%JAVA_HOME%\bin;%PATH%"
 
 echo Using JAVA_HOME=%JAVA_HOME%
 java -version
+javac -version
 echo.
 
 if "%~1"=="" (

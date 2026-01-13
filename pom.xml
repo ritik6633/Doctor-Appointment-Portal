@@ -5,8 +5,8 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<!-- Spring Boot 4 requires Java 21; the requirement is Java 17, so use Boot 3.x -->
-		<version>3.4.1</version>
+		<!-- Java 17 compatible; keeps @MockBean supported (Boot 3.4 deprecates it) -->
+		<version>3.3.7</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>

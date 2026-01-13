@@ -1,10 +1,6 @@
 package com.doctorportal.appointment;
 
-import com.doctorportal.appointment.dto.AppointmentResponse;
-import com.doctorportal.appointment.dto.BookAppointmentRequest;
-import com.doctorportal.appointment.dto.HospitalAppointmentResponse;
-import com.doctorportal.appointment.dto.HospitalAppointmentSearchRequest;
-import com.doctorportal.appointment.dto.UpdateAppointmentStatusRequest;
+import com.doctorportal.appointment.dto.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -50,6 +46,13 @@ public class AppointmentController {
 				hospitalId,
 				new HospitalAppointmentSearchRequest(from, to, status)
 		));
+	}
+
+	@GetMapping("/hospital/{id}/audit")
+	public ResponseEntity<List<DeveloperHospitalAppointmentResponse>> auditHospitalAppointments(
+			@PathVariable("id") Long hospitalId
+	) {
+		return ResponseEntity.ok(appointmentService.developerAuditHospitalAppointments(hospitalId));
 	}
 
 	@PutMapping("/{id}/cancel")

@@ -2,11 +2,7 @@ package com.doctorportal.appointment;
 
 import com.doctorportal.auth.AuthPrincipal;
 import com.doctorportal.auth.RequireRole;
-import com.doctorportal.appointment.dto.AppointmentResponse;
-import com.doctorportal.appointment.dto.BookAppointmentRequest;
-import com.doctorportal.appointment.dto.HospitalAppointmentResponse;
-import com.doctorportal.appointment.dto.HospitalAppointmentSearchRequest;
-import com.doctorportal.appointment.dto.UpdateAppointmentStatusRequest;
+import com.doctorportal.appointment.dto.*;
 import com.doctorportal.common.exception.BadRequestException;
 import com.doctorportal.common.exception.ForbiddenException;
 import com.doctorportal.common.exception.NotFoundException;
@@ -14,6 +10,8 @@ import com.doctorportal.doctor.DoctorAvailabilityEntity;
 import com.doctorportal.doctor.DoctorAvailabilityRepository;
 import com.doctorportal.doctor.DoctorEntity;
 import com.doctorportal.doctor.DoctorRepository;
+import com.doctorportal.hospital.HospitalEntity;
+import com.doctorportal.hospital.HospitalRepository;
 import com.doctorportal.user.Role;
 import com.doctorportal.user.UserEntity;
 import com.doctorportal.user.UserRepository;
@@ -32,6 +30,7 @@ public class AppointmentService {
 	private final DoctorRepository doctorRepository;
 	private final UserRepository userRepository;
 	private final DoctorAvailabilityRepository availabilityRepository;
+	private final HospitalRepository hospitalRepository;
 
 	@Transactional
 	public AppointmentResponse book(BookAppointmentRequest req) {
@@ -159,6 +158,19 @@ public class AppointmentService {
 				.filter(a -> to == null || !a.getAppointmentDate().isAfter(to))
 				.filter(a -> search.status() == null || a.getStatus() == search.status())
 				.map(AppointmentMapper::toHospitalResponse)
+				.toList();
+	}
+
+	@Transactional(readOnly = true)
+	public List<DeveloperHospitalAppointmentResponse> developerAuditHospitalAppointments(Long hospitalId) {
+		RequireRole.requireAny(Role.DEVELOPER_ADMIN);
+
+		HospitalEntity hospital = hospitalRepository.findById(hospitalId)
+				.orElseThrow(() -> new NotFoundException("Hospital not found: " + hospitalId));
+		// intentionally allow inactive/unapproved hospitals for auditing
+
+		return appointmentRepository.findByHospitalIdOrderByAppointmentDateDescAppointmentTimeDesc(hospital.getId()).stream()
+				.map(AppointmentMapper::toDeveloperAuditResponse)
 				.toList();
 	}
 

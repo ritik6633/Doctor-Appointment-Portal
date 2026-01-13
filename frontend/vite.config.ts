@@ -4,16 +4,17 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5174,
+    port: 5173,
+    strictPort: true,
     proxy: {
-      '/auth': 'http://localhost:8080',
-      '/hospitals': 'http://localhost:8080',
-      '/departments': 'http://localhost:8080',
-      '/doctors': 'http://localhost:8080',
-      '/appointments': 'http://localhost:8080',
-      '/reviews': 'http://localhost:8080',
-      '/dashboard': 'http://localhost:8080',
-      '/actuator': 'http://localhost:8080'
+      '/auth': 'http://localhost:8081',
+      '/hospitals': 'http://localhost:8081',
+      '/departments': 'http://localhost:8081',
+      '/doctors': 'http://localhost:8081',
+      '/appointments': 'http://localhost:8081',
+      '/reviews': 'http://localhost:8081',
+      '/dashboard': 'http://localhost:8081',
+      '/actuator': 'http://localhost:8081'
     },
   },
 });

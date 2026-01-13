@@ -50,21 +50,21 @@ Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile','-Executio
 
 Write-Host "Waiting for servers to start..."
 
-# Expected ports: backend 8080, frontend 5173 (per vite.config.ts / package.json)
+# Expected ports: backend 8081, frontend 5173 (per vite.config.ts / package.json)
 $backendOk = $false
 $frontendOk = $false
 
 for ($i = 0; $i -lt 90; $i++) {
-  if (-not $backendOk) { $backendOk = Test-TcpPort -HostName '127.0.0.1' -Port 8080 }
+  if (-not $backendOk) { $backendOk = Test-TcpPort -HostName '127.0.0.1' -Port 8081 }
   if (-not $frontendOk) { $frontendOk = Test-TcpPort -HostName '127.0.0.1' -Port 5173 }
   if ($backendOk -and $frontendOk) { break }
   Start-Sleep -Milliseconds 500
 }
 
 if (-not $backendOk) {
-  Write-Warning "Backend did not open port 8080. Check the backend PowerShell window for errors (often Java version or MySQL)."
+  Write-Warning "Backend did not open port 8081. Check the backend PowerShell window for errors (often Java version or MySQL)."
 } else {
-  Write-Host "Backend is listening on http://localhost:8080"
+  Write-Host "Backend is listening on http://localhost:8081"
 }
 
 if (-not $frontendOk) {

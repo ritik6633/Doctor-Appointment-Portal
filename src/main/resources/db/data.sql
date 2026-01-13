@@ -8,10 +8,10 @@ VALUES
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 
 -- Departments
-INSERT INTO departments (id, hospital_id, name, description)
+INSERT INTO departments (id, hospital_id, name, description, active)
 VALUES
-  (1, 1, 'Cardiology', 'Heart and vascular care'),
-  (2, 1, 'Dermatology', 'Skin and hair care')
+  (1, 1, 'Cardiology', 'Heart and vascular care', TRUE),
+  (2, 1, 'Dermatology', 'Skin and hair care', TRUE)
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 
 -- Users

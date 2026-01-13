@@ -4,10 +4,14 @@ import com.doctorportal.auth.AuthPrincipal;
 import com.doctorportal.auth.RequireRole;
 import com.doctorportal.appointment.dto.AppointmentResponse;
 import com.doctorportal.appointment.dto.BookAppointmentRequest;
+import com.doctorportal.appointment.dto.HospitalAppointmentResponse;
+import com.doctorportal.appointment.dto.HospitalAppointmentSearchRequest;
 import com.doctorportal.appointment.dto.UpdateAppointmentStatusRequest;
 import com.doctorportal.common.exception.BadRequestException;
 import com.doctorportal.common.exception.ForbiddenException;
 import com.doctorportal.common.exception.NotFoundException;
+import com.doctorportal.doctor.DoctorAvailabilityEntity;
+import com.doctorportal.doctor.DoctorAvailabilityRepository;
 import com.doctorportal.doctor.DoctorEntity;
 import com.doctorportal.doctor.DoctorRepository;
 import com.doctorportal.user.Role;
@@ -27,6 +31,7 @@ public class AppointmentService {
 	private final AppointmentRepository appointmentRepository;
 	private final DoctorRepository doctorRepository;
 	private final UserRepository userRepository;
+	private final DoctorAvailabilityRepository availabilityRepository;
 
 	@Transactional
 	public AppointmentResponse book(BookAppointmentRequest req) {
@@ -49,6 +54,11 @@ public class AppointmentService {
 		if (date.isBefore(LocalDate.now())) {
 			throw new BadRequestException("Appointment date cannot be in the past");
 		}
+		if (date.isEqual(LocalDate.now()) && !time.isAfter(LocalTime.now())) {
+			throw new BadRequestException("Appointment time must be in the future");
+		}
+
+		assertIsWithinDoctorAvailabilityGrid(doctor.getId(), date, time);
 
 		boolean conflict = appointmentRepository.existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndStatusIn(
 				doctor.getId(),
@@ -70,6 +80,29 @@ public class AppointmentService {
 		appt.setSymptoms(req.symptoms());
 
 		return AppointmentMapper.toResponse(appointmentRepository.save(appt));
+	}
+
+	private void assertIsWithinDoctorAvailabilityGrid(Long doctorId, LocalDate date, LocalTime time) {
+		var rulesForDay = availabilityRepository.findByDoctorIdAndDayOfWeek(doctorId, date.getDayOfWeek());
+		if (rulesForDay.isEmpty()) {
+			throw new BadRequestException("Doctor is not available on " + date.getDayOfWeek());
+		}
+
+		DoctorAvailabilityEntity rule = rulesForDay.get(0);
+		if (!time.isBefore(rule.getEndTime()) || time.isBefore(rule.getStartTime())) {
+			throw new BadRequestException("Requested time is outside doctor's availability window");
+		}
+
+		int step = rule.getSlotDurationMinutes();
+		long minutesFromStart = java.time.Duration.between(rule.getStartTime(), time).toMinutes();
+		if (minutesFromStart % step != 0) {
+			throw new BadRequestException("Requested time is not aligned to slot duration of " + step + " minutes");
+		}
+
+		// Ensure it's a valid start slot (must fit entirely in window)
+		if (time.plusMinutes(step).isAfter(rule.getEndTime())) {
+			throw new BadRequestException("Requested slot exceeds doctor's availability window");
+		}
 	}
 
 	@Transactional(readOnly = true)
@@ -96,6 +129,39 @@ public class AppointmentService {
 				.stream().map(AppointmentMapper::toResponse).toList();
 	}
 
+	@Transactional(readOnly = true)
+	public List<HospitalAppointmentResponse> listForHospital(Long hospitalId) {
+		return searchForHospital(hospitalId, new HospitalAppointmentSearchRequest(null, null, null));
+	}
+
+	@Transactional(readOnly = true)
+	public List<HospitalAppointmentResponse> searchForHospital(Long hospitalId, HospitalAppointmentSearchRequest search) {
+		AuthPrincipal principal = RequireRole.requireAny(Role.HOSPITAL_ADMIN);
+
+		UserEntity admin = userRepository.findById(principal.userId())
+				.orElseThrow(() -> new NotFoundException("User not found: " + principal.userId()));
+		if (admin.getHospital() == null) {
+			throw new ForbiddenException("Hospital admin is not assigned to a hospital");
+		}
+		if (!admin.getHospital().getId().equals(hospitalId)) {
+			throw new ForbiddenException("Hospital admin can only view their own hospital appointments");
+		}
+
+		LocalDate from = search.from();
+		LocalDate to = search.to();
+		if (from != null && to != null && to.isBefore(from)) {
+			throw new BadRequestException("to must be on or after from");
+		}
+
+		return appointmentRepository.findByHospitalIdOrderByAppointmentDateDescAppointmentTimeDesc(hospitalId)
+				.stream()
+				.filter(a -> from == null || !a.getAppointmentDate().isBefore(from))
+				.filter(a -> to == null || !a.getAppointmentDate().isAfter(to))
+				.filter(a -> search.status() == null || a.getStatus() == search.status())
+				.map(AppointmentMapper::toHospitalResponse)
+				.toList();
+	}
+
 	@Transactional
 	public AppointmentResponse cancel(Long appointmentId) {
 		AuthPrincipal principal = RequireRole.requireAny(Role.PATIENT);
@@ -107,6 +173,9 @@ public class AppointmentService {
 		}
 		if (appt.getStatus() != AppointmentStatus.BOOKED) {
 			throw new BadRequestException("Only BOOKED appointments can be cancelled");
+		}
+		if (appt.getAppointmentDate().isBefore(LocalDate.now())) {
+			throw new BadRequestException("Past appointments cannot be cancelled");
 		}
 
 		appt.setStatus(AppointmentStatus.CANCELLED);
@@ -123,6 +192,16 @@ public class AppointmentService {
 				.orElseThrow(() -> new NotFoundException("Doctor profile not found for user: " + principal.userId()));
 		if (!appt.getDoctor().getId().equals(doctor.getId())) {
 			throw new ForbiddenException("Doctor can only update appointments assigned to them");
+		}
+
+		if (!doctor.isActive()) {
+			throw new BadRequestException("Doctor is inactive");
+		}
+		if (!doctor.getHospital().isActive()) {
+			throw new BadRequestException("Hospital is inactive");
+		}
+		if (!doctor.getHospital().isApproved()) {
+			throw new BadRequestException("Hospital is not approved");
 		}
 
 		AppointmentStatus target = req.status();

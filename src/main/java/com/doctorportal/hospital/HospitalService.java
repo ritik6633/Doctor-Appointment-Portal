@@ -19,7 +19,7 @@ public class HospitalService {
 	@Transactional(readOnly = true)
 	public List<HospitalResponse> listHospitals(boolean includeUnapproved) {
 		return hospitalRepository.findAll().stream()
-				.filter(h -> h.isActive())
+				.filter(HospitalEntity::isActive)
 				.filter(h -> includeUnapproved || h.isApproved())
 				.map(HospitalMapper::toResponse)
 				.toList();
@@ -47,7 +47,17 @@ public class HospitalService {
 		HospitalEntity h = hospitalRepository.findById(id)
 				.orElseThrow(() -> new NotFoundException("Hospital not found: " + id));
 		h.setApproved(true);
+		h.setActive(true);
+		return HospitalMapper.toResponse(h);
+	}
+
+	@Transactional
+	public HospitalResponse setActive(Long id, boolean active) {
+		RequireRole.requireAny(Role.DEVELOPER_ADMIN);
+
+		HospitalEntity h = hospitalRepository.findById(id)
+				.orElseThrow(() -> new NotFoundException("Hospital not found: " + id));
+		h.setActive(active);
 		return HospitalMapper.toResponse(h);
 	}
 }
-

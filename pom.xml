@@ -16,6 +16,11 @@
 	<description>Doctor Appointment Portal</description>
 	<properties>
 		<java.version>17</java.version>
+		<!-- Keep plugin versions explicit for stable, interview-ready builds -->
+		<maven.compiler.plugin.version>3.13.0</maven.compiler.plugin.version>
+		<!-- Maven Toolchains Plugin coordinates -->
+		<maven.toolchains.plugin.version>3.2.0</maven.toolchains.plugin.version>
+		<jdk.toolchain.version>17</jdk.toolchain.version>
 	</properties>
 
 	<dependencies>
@@ -81,9 +86,33 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
+			<!-- Force compilation with JDK 17 even if system Maven runs on Java 8 -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-toolchains-plugin</artifactId>
+				<version>${maven.toolchains.plugin.version}</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>toolchain</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<toolchains>
+						<jdk>
+							<version>${jdk.toolchain.version}</version>
+							<vendor>any</vendor>
+						</jdk>
+					</toolchains>
+				</configuration>
+			</plugin>
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<version>${maven.compiler.plugin.version}</version>
 				<configuration>
 					<release>${java.version}</release>
 					<annotationProcessorPaths>

@@ -26,6 +26,7 @@ public class DepartmentService {
 	@Transactional(readOnly = true)
 	public List<DepartmentResponse> listByHospital(Long hospitalId) {
 		return departmentRepository.findByHospitalId(hospitalId).stream()
+				.filter(DepartmentEntity::isActive)
 				.map(DepartmentMapper::toResponse)
 				.toList();
 	}
@@ -48,11 +49,15 @@ public class DepartmentService {
 		if (!hospital.isActive()) {
 			throw new BadRequestException("Hospital is inactive");
 		}
+		if (!hospital.isApproved()) {
+			throw new BadRequestException("Hospital must be approved");
+		}
 
 		DepartmentEntity d = new DepartmentEntity();
 		d.setHospital(hospital);
 		d.setName(req.name());
 		d.setDescription(req.description());
+		d.setActive(true);
 		return DepartmentMapper.toResponse(departmentRepository.save(d));
 	}
 }

@@ -4,7 +4,7 @@ public record DepartmentResponse(
 		Long id,
 		Long hospitalId,
 		String name,
-		String description
+		String description,
+		boolean active
 ) {
 }
-

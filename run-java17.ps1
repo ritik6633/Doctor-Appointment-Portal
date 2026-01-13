@@ -30,6 +30,9 @@ if (!(Test-Path "$jdk17\bin\java.exe")) {
 $env:JAVA_HOME = $jdk17
 $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 
+# Helps child Java processes (surefire forks) use Java 17 as well.
+$env:JAVA_TOOL_OPTIONS = "-Djava.home=$env:JAVA_HOME"
+
 Write-Host "Using JAVA_HOME=$env:JAVA_HOME"
 java -version
 
@@ -54,4 +57,3 @@ switch ($Task) {
 }
 
 exit $LASTEXITCODE
-

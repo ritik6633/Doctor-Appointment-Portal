@@ -1,11 +1,15 @@
 package com.doctorportal.doctor;
 
+import com.doctorportal.auth.AuthPrincipal;
 import com.doctorportal.auth.RequireRole;
+import com.doctorportal.appointment.AppointmentRepository;
+import com.doctorportal.appointment.AppointmentStatus;
 import com.doctorportal.common.exception.BadRequestException;
 import com.doctorportal.common.exception.NotFoundException;
 import com.doctorportal.department.DepartmentEntity;
 import com.doctorportal.department.DepartmentRepository;
 import com.doctorportal.doctor.dto.CreateDoctorRequest;
+import com.doctorportal.doctor.dto.DoctorDashboardDetailResponse;
 import com.doctorportal.doctor.dto.DoctorResponse;
 import com.doctorportal.hospital.HospitalEntity;
 import com.doctorportal.hospital.HospitalRepository;
@@ -17,6 +21,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -26,14 +31,73 @@ public class DoctorService {
 	private final UserRepository userRepository;
 	private final HospitalRepository hospitalRepository;
 	private final DepartmentRepository departmentRepository;
+	private final DoctorAvailabilityRepository doctorAvailabilityRepository;
+	private final AppointmentRepository appointmentRepository;
 	private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
 	@Transactional(readOnly = true)
 	public List<DoctorResponse> listByHospital(Long hospitalId) {
 		return doctorRepository.findByHospitalId(hospitalId).stream()
-				.filter(DoctorEntity::isActive)
+				.filter(d -> d.isActive() && d.getHospital().isActive() && d.getHospital().isApproved())
 				.map(DoctorMapper::toResponse)
 				.toList();
+	}
+
+	@Transactional(readOnly = true)
+	public List<DoctorResponse> listByHospitalAndDepartment(Long hospitalId, Long departmentId) {
+		return doctorRepository.findByHospitalIdAndDepartmentId(hospitalId, departmentId).stream()
+				.filter(d -> d.isActive() && d.getHospital().isActive() && d.getHospital().isApproved())
+				.map(DoctorMapper::toResponse)
+				.toList();
+	}
+
+	@Transactional(readOnly = true)
+	public DoctorDashboardDetailResponse doctorDashboardDetail() {
+		AuthPrincipal principal = RequireRole.requireAny(Role.DOCTOR);
+		DoctorEntity doctor = doctorRepository.findByUserId(principal.userId())
+				.orElseThrow(() -> new NotFoundException("Doctor profile not found for user: " + principal.userId()));
+
+		if (!doctor.isActive()) {
+			throw new BadRequestException("Doctor is inactive");
+		}
+		if (!doctor.getHospital().isActive()) {
+			throw new BadRequestException("Hospital is inactive");
+		}
+		if (!doctor.getHospital().isApproved()) {
+			throw new BadRequestException("Hospital is not approved");
+		}
+
+		var all = appointmentRepository.findByDoctorIdOrderByAppointmentDateDescAppointmentTimeDesc(doctor.getId());
+		long total = all.size();
+		long completed = all.stream().filter(a -> a.getStatus() == AppointmentStatus.COMPLETED).count();
+		long cancelled = all.stream().filter(a -> a.getStatus() == AppointmentStatus.CANCELLED).count();
+
+		LocalDate today = LocalDate.now();
+		var todayAppts = appointmentRepository.findByDoctorIdAndAppointmentDateOrderByAppointmentTimeAsc(doctor.getId(), today);
+		long todayCount = todayAppts.size();
+
+		var todaySchedule = todayAppts.stream()
+				.map(a -> new DoctorDashboardDetailResponse.TodayAppointment(
+						a.getId(),
+						a.getPatient().getId(),
+						a.getPatient().getName(),
+						a.getAppointmentDate(),
+						a.getAppointmentTime(),
+						a.getStatus(),
+						a.getSymptoms()
+				))
+				.toList();
+
+		var weekly = doctorAvailabilityRepository.findByDoctorIdOrderByDayOfWeekAscStartTimeAsc(doctor.getId()).stream()
+				.map(a -> new DoctorDashboardDetailResponse.WeeklyAvailability(
+						a.getDayOfWeek(),
+						a.getStartTime(),
+						a.getEndTime(),
+						a.getSlotDurationMinutes()
+				))
+				.toList();
+
+		return new DoctorDashboardDetailResponse(total, todayCount, completed, cancelled, todaySchedule, weekly);
 	}
 
 	@Transactional

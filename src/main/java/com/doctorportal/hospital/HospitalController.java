@@ -30,5 +30,12 @@ public class HospitalController {
 	public ResponseEntity<HospitalResponse> approve(@PathVariable Long id) {
 		return ResponseEntity.ok(hospitalService.approveHospital(id));
 	}
-}
 
+	@PutMapping("/{id}/active")
+	public ResponseEntity<HospitalResponse> setActive(
+			@PathVariable Long id,
+			@RequestParam("value") boolean active
+	) {
+		return ResponseEntity.ok(hospitalService.setActive(id, active));
+	}
+}

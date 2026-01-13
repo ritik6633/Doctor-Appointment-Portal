@@ -47,6 +47,7 @@ CREATE TABLE departments (
   hospital_id BIGINT NOT NULL,
   name VARCHAR(120) NOT NULL,
   description VARCHAR(500),
+  active BOOLEAN NOT NULL DEFAULT TRUE,
   CONSTRAINT fk_departments_hospital FOREIGN KEY (hospital_id) REFERENCES hospitals(id)
 );
 

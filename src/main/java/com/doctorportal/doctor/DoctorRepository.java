@@ -7,6 +7,6 @@ import java.util.Optional;
 
 public interface DoctorRepository extends JpaRepository<DoctorEntity, Long> {
 	List<DoctorEntity> findByHospitalId(Long hospitalId);
+	List<DoctorEntity> findByHospitalIdAndDepartmentId(Long hospitalId, Long departmentId);
 	Optional<DoctorEntity> findByUserId(Long userId);
 }
-

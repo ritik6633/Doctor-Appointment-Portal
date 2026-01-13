@@ -11,8 +11,8 @@ public final class DepartmentMapper {
 			e.getId(),
 			e.getHospital().getId(),
 			e.getName(),
-			e.getDescription()
+			e.getDescription(),
+			e.isActive()
 		);
 	}
 }
-

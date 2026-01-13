@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.List;
 
 @Service
@@ -37,16 +38,42 @@ public class DoctorAvailabilityService {
 				.orElseThrow(() -> new NotFoundException("Doctor not found: " + doctorId));
 		assertCanManage(principal, doctor);
 
-		if (req.slotDurationMinutes() <= 0) {
+		if (!doctor.isActive()) {
+			throw new BadRequestException("Doctor is inactive");
+		}
+		if (!doctor.getHospital().isActive()) {
+			throw new BadRequestException("Hospital is inactive");
+		}
+		if (!doctor.getHospital().isApproved()) {
+			throw new BadRequestException("Hospital is not approved");
+		}
+
+		if (req.slotDurationMinutes() == null || req.slotDurationMinutes() <= 0) {
 			throw new BadRequestException("slotDurationMinutes must be > 0");
 		}
 		if (!req.endTime().isAfter(req.startTime())) {
 			throw new BadRequestException("endTime must be after startTime");
 		}
 
-		// Simple upsert: if an entry exists for the day, update the first one.
+		long windowMinutes = Duration.between(req.startTime(), req.endTime()).toMinutes();
+		if (windowMinutes < req.slotDurationMinutes()) {
+			throw new BadRequestException("Availability window is smaller than slot duration");
+		}
+		if (windowMinutes % req.slotDurationMinutes() != 0) {
+			throw new BadRequestException("Availability window must be divisible by slotDurationMinutes");
+		}
+
+		// Upsert with overlap checks:
+		// - allow exactly one rule per day for now
+		// - block additional rules to avoid ambiguous slot generation
 		List<DoctorAvailabilityEntity> existing = availabilityRepository.findByDoctorIdAndDayOfWeek(doctorId, req.dayOfWeek());
 		DoctorAvailabilityEntity e = existing.isEmpty() ? new DoctorAvailabilityEntity() : existing.get(0);
+
+		// If there are multiple rows (shouldn't happen), don't silently pick one.
+		if (existing.size() > 1) {
+			throw new BadRequestException("Multiple availability rules exist for this day. Please clean up data.");
+		}
+
 		e.setDoctor(doctor);
 		e.setDayOfWeek(req.dayOfWeek());
 		e.setStartTime(req.startTime());

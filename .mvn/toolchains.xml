@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<toolchains>
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>17</version>
+      <vendor>any</vendor>
+    </provides>
+    <configuration>
+      <!-- Update this path if your JDK 17 is installed elsewhere -->
+      <jdkHome>C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot</jdkHome>
+    </configuration>
+  </toolchain>
+</toolchains>
+

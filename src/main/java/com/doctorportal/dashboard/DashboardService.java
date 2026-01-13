@@ -2,22 +2,27 @@ package com.doctorportal.dashboard;
 
 import com.doctorportal.auth.AuthPrincipal;
 import com.doctorportal.auth.RequireRole;
+import com.doctorportal.appointment.AppointmentEntity;
 import com.doctorportal.appointment.AppointmentRepository;
 import com.doctorportal.appointment.AppointmentStatus;
+import com.doctorportal.common.exception.BadRequestException;
+import com.doctorportal.common.exception.NotFoundException;
 import com.doctorportal.dashboard.dto.*;
+import com.doctorportal.department.DepartmentRepository;
 import com.doctorportal.doctor.DoctorEntity;
 import com.doctorportal.doctor.DoctorRepository;
+import com.doctorportal.hospital.HospitalEntity;
 import com.doctorportal.hospital.HospitalRepository;
 import com.doctorportal.user.Role;
 import com.doctorportal.user.UserEntity;
 import com.doctorportal.user.UserRepository;
-import com.doctorportal.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +31,7 @@ public class DashboardService {
 	private final DoctorRepository doctorRepository;
 	private final UserRepository userRepository;
 	private final HospitalRepository hospitalRepository;
+	private final DepartmentRepository departmentRepository;
 
 	@Transactional(readOnly = true)
 	public PatientDashboardResponse patientDashboard() {
@@ -46,8 +52,8 @@ public class DashboardService {
 		var next = appts.stream()
 				.filter(a -> a.getStatus() == AppointmentStatus.BOOKED)
 				.filter(a -> !a.getAppointmentDate().isBefore(today))
-				.min(Comparator.comparing((com.doctorportal.appointment.AppointmentEntity a) -> a.getAppointmentDate())
-						.thenComparing(com.doctorportal.appointment.AppointmentEntity::getAppointmentTime))
+				.min(Comparator.comparing(AppointmentEntity::getAppointmentDate)
+						.thenComparing(AppointmentEntity::getAppointmentTime))
 				.map(a -> new PatientDashboardResponse.NextAppointment(
 						a.getId(),
 						a.getDoctor().getId(),
@@ -85,24 +91,84 @@ public class DashboardService {
 		if (admin.getHospital() == null) {
 			throw new NotFoundException("Hospital not assigned to admin");
 		}
+		if (!admin.getHospital().isActive()) {
+			throw new BadRequestException("Hospital is inactive");
+		}
+		if (!admin.getHospital().isApproved()) {
+			throw new BadRequestException("Hospital is not approved");
+		}
+
 		Long hospitalId = admin.getHospital().getId();
 
 		long doctors = doctorRepository.findByHospitalId(hospitalId).stream().filter(DoctorEntity::isActive).count();
 		var appts = appointmentRepository.findByHospitalIdOrderByAppointmentDateDescAppointmentTimeDesc(hospitalId);
+
 		long total = appts.size();
 		long booked = appts.stream().filter(a -> a.getStatus() == AppointmentStatus.BOOKED).count();
+		long completed = appts.stream().filter(a -> a.getStatus() == AppointmentStatus.COMPLETED).count();
+		long cancelled = appts.stream().filter(a -> a.getStatus() == AppointmentStatus.CANCELLED).count();
 
-		return new HospitalAdminDashboardResponse(hospitalId, doctors, total, booked);
+		List<HospitalAdminDashboardResponse.RecentBooking> recent = appts.stream()
+				.limit(10)
+				.map(a -> new HospitalAdminDashboardResponse.RecentBooking(
+						a.getId(),
+						a.getDoctor().getId(),
+						a.getDoctor().getUser().getName(),
+						a.getPatient().getId(),
+						a.getPatient().getName(),
+						a.getAppointmentDate(),
+						a.getAppointmentTime(),
+						a.getStatus()
+				))
+				.toList();
+
+		var departmentStats = departmentRepository.findByHospitalIdAndActiveTrue(hospitalId).stream()
+				.map(d -> new HospitalAdminDashboardResponse.DepartmentStat(
+						d.getId(),
+						d.getName(),
+						doctorRepository.findByHospitalIdAndDepartmentId(hospitalId, d.getId())
+								.stream().filter(DoctorEntity::isActive).count()
+				))
+				.toList();
+
+		return new HospitalAdminDashboardResponse(hospitalId, doctors, total, booked, completed, cancelled, recent, departmentStats);
 	}
 
 	@Transactional(readOnly = true)
 	public DeveloperAdminDashboardResponse developerAdminDashboard() {
 		RequireRole.requireAny(Role.DEVELOPER_ADMIN);
+
 		long totalHospitals = hospitalRepository.count();
-		long approved = hospitalRepository.findAll().stream().filter(h -> h.isApproved()).count();
+		long approved = hospitalRepository.countByApprovedTrue();
 		long pending = totalHospitals - approved;
+
 		long users = userRepository.count();
-		return new DeveloperAdminDashboardResponse(totalHospitals, approved, pending, users);
+		long totalPatients = userRepository.countByRole(Role.PATIENT);
+		long totalDoctors = userRepository.countByRole(Role.DOCTOR);
+		long totalHospitalAdmins = userRepository.countByRole(Role.HOSPITAL_ADMIN);
+
+		List<DeveloperAdminDashboardResponse.RecentHospital> recent = hospitalRepository.findAll().stream()
+				.sorted(Comparator.comparing(HospitalEntity::getCreatedAt).reversed())
+				.limit(10)
+				.map(h -> new DeveloperAdminDashboardResponse.RecentHospital(
+						h.getId(),
+						h.getName(),
+						h.getCity(),
+						h.isApproved(),
+						h.isActive()
+				))
+				.toList();
+
+		return new DeveloperAdminDashboardResponse(
+				totalHospitals,
+				approved,
+				pending,
+				users,
+				totalPatients,
+				totalDoctors,
+				totalHospitalAdmins,
+				recent
+		);
 	}
 }
 

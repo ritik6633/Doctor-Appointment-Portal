@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Box,
+  Alert,
   Button,
   Container,
   FormControl,
   InputLabel,
   MenuItem,
+  Rating,
   Select,
   Stack,
   TextField,
@@ -14,6 +15,8 @@ import {
 import { listHospitals } from '../../api/hospitalApi';
 import { listDoctorsByHospital } from '../../api/doctorApi';
 import { createReview, listReviewsByDoctor, type ReviewResponse } from '../../api/reviewApi';
+import PageHeader from '../../components/PageHeader';
+import { GlassCard } from '../../components/GlassCard';
 
 export function DoctorReviewsPage() {
   const [hospitals, setHospitals] = useState<{ id: number; name: string; city: string }[]>([]);
@@ -23,9 +26,9 @@ export function DoctorReviewsPage() {
 
   const [reviews, setReviews] = useState<ReviewResponse[]>([]);
 
-  const [rating, setRating] = useState(5);
+  const [rating, setRating] = useState<number | null>(5);
   const [comment, setComment] = useState('');
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     listHospitals().then((hs) => setHospitals(hs.map((h) => ({ id: h.id, name: h.name, city: h.city }))));
@@ -50,108 +53,128 @@ export function DoctorReviewsPage() {
     }
   }, [doctorId]);
 
-  const canSubmit = useMemo(() => typeof doctorId === 'number' && comment.trim().length > 3, [doctorId, comment]);
+  const canSubmit = useMemo(
+    () => typeof doctorId === 'number' && (rating ?? 0) >= 1 && comment.trim().length > 3,
+    [doctorId, rating, comment],
+  );
 
   return (
-    <Container maxWidth="md">
-      <Box>
-        <Typography variant="h5" sx={{ mb: 2 }}>
-          Doctor Reviews
-        </Typography>
+    <Container maxWidth="lg">
+      <PageHeader
+        title="Doctor Reviews"
+        subtitle="Read reviews and submit your feedback"
+        breadcrumbs={[{ label: 'Patient', to: '/patient/dashboard' }, { label: 'Doctor Reviews' }]}
+      />
 
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 2 }}>
-          <FormControl fullWidth>
-            <InputLabel>Hospital</InputLabel>
-            <Select value={hospitalId} label="Hospital" onChange={(e) => setHospitalId(e.target.value as any)}>
-              {hospitals.map((h) => (
-                <MenuItem key={h.id} value={h.id}>
-                  {h.name} ({h.city})
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+      {msg && (
+        <Alert sx={{ mb: 2 }} severity={msg.type} variant="outlined">
+          {msg.text}
+        </Alert>
+      )}
 
-          <FormControl fullWidth disabled={typeof hospitalId !== 'number'}>
-            <InputLabel>Doctor</InputLabel>
-            <Select value={doctorId} label="Doctor" onChange={(e) => setDoctorId(e.target.value as any)}>
-              {doctors.map((d) => (
-                <MenuItem key={d.id} value={d.id}>
-                  {d.name} - {d.specialization}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Stack>
+      <Stack spacing={2}>
+        <GlassCard>
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Select
+          </Typography>
+
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+            <FormControl fullWidth>
+              <InputLabel>Hospital</InputLabel>
+              <Select value={hospitalId} label="Hospital" onChange={(e) => setHospitalId(e.target.value as any)}>
+                {hospitals.map((h) => (
+                  <MenuItem key={h.id} value={h.id}>
+                    {h.name} ({h.city})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth disabled={typeof hospitalId !== 'number'}>
+              <InputLabel>Doctor</InputLabel>
+              <Select value={doctorId} label="Doctor" onChange={(e) => setDoctorId(e.target.value as any)}>
+                {doctors.map((d) => (
+                  <MenuItem key={d.id} value={d.id}>
+                    {d.name}  {d.specialization}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Stack>
+        </GlassCard>
 
         {typeof doctorId === 'number' && (
-          <Box sx={{ border: '1px solid #eee', borderRadius: 2, p: 2, mb: 3 }}>
+          <GlassCard>
             <Typography variant="h6" sx={{ mb: 1 }}>
               Add your review
             </Typography>
 
-            <TextField
-              label="Rating (1-5)"
-              type="number"
-              inputProps={{ min: 1, max: 5 }}
-              value={rating}
-              onChange={(e) => setRating(Number(e.target.value))}
-              sx={{ mr: 2, width: 180 }}
-            />
+            <Stack spacing={2}>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ minWidth: 120 }}>
+                  Rating
+                </Typography>
+                <Rating value={rating} onChange={(_, v) => setRating(v)} max={5} />
+              </Stack>
 
-            <TextField
-              label="Comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              fullWidth
-              sx={{ mt: 2 }}
-            />
+              <TextField
+                label="Comment"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                fullWidth
+                multiline
+                minRows={2}
+              />
 
-            <Button
-              variant="contained"
-              sx={{ mt: 2 }}
-              disabled={!canSubmit}
-              onClick={async () => {
-                setMsg(null);
-                try {
-                  await createReview({ doctorId, rating, comment });
-                  setComment('');
-                  setMsg('Review submitted');
-                  const next = await listReviewsByDoctor(doctorId);
-                  setReviews(next);
-                } catch (e: any) {
-                  setMsg(e?.response?.data?.message ?? 'Failed to submit review');
-                }
-              }}
-            >
-              Submit Review
-            </Button>
-
-            {msg && (
-              <Typography sx={{ mt: 1 }} color={msg.toLowerCase().includes('fail') ? 'error' : 'primary'}>
-                {msg}
-              </Typography>
-            )}
-          </Box>
+              <Button
+                variant="contained"
+                disabled={!canSubmit}
+                onClick={async () => {
+                  setMsg(null);
+                  try {
+                    await createReview({ doctorId, rating: rating ?? 5, comment });
+                    setComment('');
+                    setRating(5);
+                    setMsg({ type: 'success', text: 'Review submitted' });
+                    const next = await listReviewsByDoctor(doctorId);
+                    setReviews(next);
+                  } catch (e: any) {
+                    setMsg({ type: 'error', text: e?.response?.data?.message ?? 'Failed to submit review' });
+                  }
+                }}
+              >
+                Submit Review
+              </Button>
+            </Stack>
+          </GlassCard>
         )}
 
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          Reviews
-        </Typography>
+        <GlassCard>
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Reviews
+          </Typography>
 
-        <Stack spacing={1}>
-          {reviews.map((r) => (
-            <Box key={r.id} sx={{ border: '1px solid #eee', borderRadius: 2, p: 2 }}>
-              <Typography variant="subtitle2">
-                {r.patientName} — Rating: {r.rating}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {r.comment}
-              </Typography>
-            </Box>
-          ))}
-          {typeof doctorId === 'number' && reviews.length === 0 && <Typography>No reviews yet.</Typography>}
-        </Stack>
-      </Box>
+          <Stack spacing={1}>
+            {typeof doctorId === 'number' && reviews.length === 0 ? (
+              <Typography color="text.secondary">No reviews yet.</Typography>
+            ) : (
+              reviews.map((r) => (
+                <GlassCard key={r.id} sx={{ borderRadius: 3 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                    {r.patientName}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Rating: {r.rating}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    {r.comment}
+                  </Typography>
+                </GlassCard>
+              ))
+            )}
+          </Stack>
+        </GlassCard>
+      </Stack>
     </Container>
   );
 }

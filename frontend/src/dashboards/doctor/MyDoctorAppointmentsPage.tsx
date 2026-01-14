@@ -1,7 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Container, Stack, Typography } from '@mui/material';
+import {
+  Alert,
+  Button,
+  Container,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material';
 import { http } from '../../api/http';
 import { useAuth } from '../../auth/AuthContext';
+import PageHeader from '../../components/PageHeader';
+import { GlassCard } from '../../components/GlassCard';
+import { StatusChip } from '../../components/StatusChip';
+import { formatDateTime } from '../../utils/format';
 
 type AppointmentStatus = 'BOOKED' | 'CANCELLED' | 'COMPLETED';
 
@@ -25,10 +41,9 @@ type UpdateAppointmentStatusRequest = {
 export function MyDoctorAppointmentsPage() {
   const { auth } = useAuth();
   const [rows, setRows] = useState<AppointmentResponse[]>([]);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const doctorUserId = auth?.userId;
-
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   useEffect(() => {
@@ -37,59 +52,82 @@ export function MyDoctorAppointmentsPage() {
   }, [doctorUserId]);
 
   return (
-    <Container maxWidth="md">
-      <Box>
-        <Typography variant="h5" sx={{ mb: 2 }}>
-          My Appointments
-        </Typography>
+    <Container maxWidth="lg">
+      <PageHeader
+        title="My Appointments"
+        subtitle="Manage today's bookings and update statuses"
+        breadcrumbs={[{ label: 'Doctor', to: '/doctor/dashboard' }, { label: 'My Appointments' }]}
+        chip={`Today: ${today}`}
+      />
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Today: {today}
-        </Typography>
+      {msg && (
+        <Alert sx={{ mb: 2 }} severity={msg.type} variant="outlined">
+          {msg.text}
+        </Alert>
+      )}
 
-        {msg && (
-          <Typography sx={{ mb: 2 }} color={msg.toLowerCase().includes('fail') ? 'error' : 'primary'}>
-            {msg}
-          </Typography>
-        )}
-
-        <Stack spacing={1}>
-          {rows.map((r) => (
-            <Box key={r.id} sx={{ border: '1px solid #eee', borderRadius: 2, p: 2 }}>
-              <Typography variant="subtitle1">
-                {r.appointmentDate} {r.appointmentTime} — Patient: {r.patientName}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Status: {r.status} | Symptoms: {r.symptoms}
-              </Typography>
-
-              {r.status === 'BOOKED' && (
-                <Button
-                  sx={{ mt: 1 }}
-                  variant="contained"
-                  onClick={async () => {
-                    setMsg(null);
-                    try {
-                      const { data } = await http.put<AppointmentResponse, any, UpdateAppointmentStatusRequest>(
-                        `/appointments/${r.id}/status`,
-                        { status: 'COMPLETED' },
-                      );
-                      setRows((prev) => prev.map((x) => (x.id === r.id ? data : x)));
-                      setMsg('Marked as COMPLETED');
-                    } catch (e: any) {
-                      setMsg(e?.response?.data?.message ?? 'Update failed');
-                    }
-                  }}
-                >
-                  Mark Completed
-                </Button>
-              )}
-            </Box>
-          ))}
-
-          {rows.length === 0 && <Typography>No appointments.</Typography>}
-        </Stack>
-      </Box>
+      {rows.length === 0 ? (
+        <GlassCard>
+          <Typography color="text.secondary">No appointments.</Typography>
+        </GlassCard>
+      ) : (
+        <GlassCard sx={{ p: 0 }} contentSx={{ p: 0 }}>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Date & Time</TableCell>
+                  <TableCell>Patient</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Symptoms</TableCell>
+                  <TableCell align="right">Action</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {rows.map((r) => (
+                  <TableRow key={r.id} hover>
+                    <TableCell>{formatDateTime(r.appointmentDate, r.appointmentTime)}</TableCell>
+                    <TableCell>{r.patientName}</TableCell>
+                    <TableCell>
+                      <StatusChip status={r.status as any} />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {r.symptoms}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        {r.status === 'BOOKED' && (
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={async () => {
+                              setMsg(null);
+                              try {
+                                const { data } = await http.put<AppointmentResponse, any, UpdateAppointmentStatusRequest>(
+                                  `/appointments/${r.id}/status`,
+                                  { status: 'COMPLETED' },
+                                );
+                                setRows((prev) => prev.map((x) => (x.id === r.id ? data : x)));
+                                setMsg({ type: 'success', text: 'Marked as COMPLETED' });
+                              } catch (e: any) {
+                                setMsg({ type: 'error', text: e?.response?.data?.message ?? 'Update failed' });
+                              }
+                            }}
+                          >
+                            Mark Completed
+                          </Button>
+                        )}
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </GlassCard>
+      )}
     </Container>
   );
 }

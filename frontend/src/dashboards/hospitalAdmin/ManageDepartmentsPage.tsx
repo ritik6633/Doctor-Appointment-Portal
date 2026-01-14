@@ -1,56 +1,61 @@
 import { useState } from 'react';
-import { Box, Button, Container, TextField, Typography } from '@mui/material';
+import { Alert, Button, Container, Stack, TextField, Typography } from '@mui/material';
 import { useAuth } from '../../auth/AuthContext';
 import { createDepartment } from '../../api/departmentApi';
+import PageHeader from '../../components/PageHeader';
+import { GlassCard } from '../../components/GlassCard';
 
 export function ManageDepartmentsPage() {
   const { auth } = useAuth();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const hospitalId = auth?.hospitalId ?? null;
 
   return (
-    <Container maxWidth="sm">
-      <Box>
-        <Typography variant="h5" sx={{ mb: 2 }}>
-          Create Department
-        </Typography>
+    <Container maxWidth="md">
+      <PageHeader
+        title="Departments"
+        subtitle="Create departments for your hospital"
+        breadcrumbs={[{ label: 'Hospital Admin', to: '/hospital-admin/dashboard' }, { label: 'Departments' }]}
+        chip={hospitalId ? `Hospital #${hospitalId}` : undefined}
+      />
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Hospital ID: {hospitalId ?? 'N/A'}
-        </Typography>
+      {msg && (
+        <Alert sx={{ mb: 2 }} severity={msg.type} variant="outlined">
+          {msg.text}
+        </Alert>
+      )}
 
-        <TextField fullWidth sx={{ mb: 2 }} label="Department name" value={name} onChange={(e) => setName(e.target.value)} />
-        <TextField fullWidth sx={{ mb: 2 }} label="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
-
-        <Button
-          variant="contained"
-          fullWidth
-          disabled={!hospitalId || !name.trim()}
-          onClick={async () => {
-            setMsg(null);
-            try {
-              await createDepartment({ hospitalId: hospitalId!, name, description });
-              setName('');
-              setDescription('');
-              setMsg('Department created');
-            } catch (e: any) {
-              setMsg(e?.response?.data?.message ?? 'Failed');
-            }
-          }}
-        >
-          Create
-        </Button>
-
-        {msg && (
-          <Typography sx={{ mt: 2 }} color={msg.toLowerCase().includes('fail') ? 'error' : 'primary'}>
-            {msg}
+      <GlassCard>
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            Hospital ID: {hospitalId ?? 'N/A'}
           </Typography>
-        )}
-      </Box>
+
+          <TextField label="Department name" value={name} onChange={(e) => setName(e.target.value)} fullWidth />
+          <TextField label="Description" value={description} onChange={(e) => setDescription(e.target.value)} fullWidth />
+
+          <Button
+            variant="contained"
+            disabled={!hospitalId || !name.trim()}
+            onClick={async () => {
+              setMsg(null);
+              try {
+                await createDepartment({ hospitalId: hospitalId!, name, description });
+                setName('');
+                setDescription('');
+                setMsg({ type: 'success', text: 'Department created' });
+              } catch (e: any) {
+                setMsg({ type: 'error', text: e?.response?.data?.message ?? 'Failed to create department' });
+              }
+            }}
+          >
+            Create Department
+          </Button>
+        </Stack>
+      </GlassCard>
     </Container>
   );
 }
-

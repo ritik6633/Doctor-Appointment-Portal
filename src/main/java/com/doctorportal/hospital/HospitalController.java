@@ -16,9 +16,12 @@ public class HospitalController {
 	private final HospitalService hospitalService;
 
 	@GetMapping
-	public ResponseEntity<List<HospitalResponse>> list() {
-		// Public: show only approved hospitals
-		return ResponseEntity.ok(hospitalService.listHospitals(false));
+	public ResponseEntity<List<HospitalResponse>> list(
+			@RequestParam(value = "includeUnapproved", required = false, defaultValue = "false") boolean includeUnapproved
+	) {
+		// Public default: show only approved hospitals
+		// Developer-admin view: can request unapproved as well
+		return ResponseEntity.ok(hospitalService.listHospitals(includeUnapproved));
 	}
 
 	@PostMapping

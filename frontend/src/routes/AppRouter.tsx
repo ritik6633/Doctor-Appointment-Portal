@@ -15,6 +15,8 @@ import { ManageDepartmentsPage } from '../dashboards/hospitalAdmin/ManageDepartm
 import { AddDoctorPage } from '../dashboards/hospitalAdmin/AddDoctorPage';
 import { ManageAvailabilityPage } from '../dashboards/hospitalAdmin/ManageAvailabilityPage';
 import { ManageHospitalsPage } from '../dashboards/developerAdmin/ManageHospitalsPage';
+import { CreateHospitalAdminPage } from '../dashboards/developerAdmin/CreateHospitalAdminPage';
+import { ManageHospitalAdminsPage } from '../dashboards/developerAdmin/ManageHospitalAdminsPage';
 
 export function AppRouter() {
   return (
@@ -127,6 +129,22 @@ export function AppRouter() {
             element={
               <DashboardLayout>
                 <ManageHospitalsPage />
+              </DashboardLayout>
+            }
+          />
+          <Route
+            path="/developer-admin/hospital-admins/create"
+            element={
+              <DashboardLayout>
+                <CreateHospitalAdminPage />
+              </DashboardLayout>
+            }
+          />
+          <Route
+            path="/developer-admin/hospital-admins"
+            element={
+              <DashboardLayout>
+                <ManageHospitalAdminsPage />
               </DashboardLayout>
             }
           />

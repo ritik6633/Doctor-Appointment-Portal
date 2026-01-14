@@ -32,29 +32,31 @@ if (-not (Test-Path (Join-Path $frontendDir 'package.json'))) {
 
 # ---- Java 17 for backend ----
 $jdk17 = 'C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot'
-if (-not (Test-Path $jdk17)) {
+if (-not (Test-Path (Join-Path $jdk17 'bin\java.exe'))) {
   throw "Java 17 not found at '$jdk17'. Update run-local.ps1 with your JDK17 path."
 }
 $env:JAVA_HOME = $jdk17
 $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 
 Write-Host "Backend JAVA_HOME=$env:JAVA_HOME"
+java -version
 
 # ---- Start backend in a new PowerShell window ----
-$backendCmd = "cd /d `"$root`" && .\\mvnw.cmd -DskipTests spring-boot:run"
+# NOTE: Avoid cmd-style 'cd /d' (invalid in PowerShell). Use Set-Location.
+$backendCmd = "Set-Location -Path `"$root`"; .\mvnw.cmd -DskipTests spring-boot:run"
 Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-Command',$backendCmd) -WorkingDirectory $root | Out-Null
 
 # ---- Start frontend in a new PowerShell window ----
-$frontendCmd = "cd /d `"$frontendDir`" && npm install && npm run dev"
+$frontendCmd = "Set-Location -Path `"$frontendDir`"; npm install; npm run dev"
 Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-Command',$frontendCmd) -WorkingDirectory $frontendDir | Out-Null
 
 Write-Host "Waiting for servers to start..."
 
-# Expected ports: backend 8081, frontend 5173 (per vite.config.ts / package.json)
+# Expected ports: backend 8081, frontend 5173
 $backendOk = $false
 $frontendOk = $false
 
-for ($i = 0; $i -lt 90; $i++) {
+for ($i = 0; $i -lt 120; $i++) {
   if (-not $backendOk) { $backendOk = Test-TcpPort -HostName '127.0.0.1' -Port 8081 }
   if (-not $frontendOk) { $frontendOk = Test-TcpPort -HostName '127.0.0.1' -Port 5173 }
   if ($backendOk -and $frontendOk) { break }
@@ -77,6 +79,8 @@ if ($backendOk -and $frontendOk) {
   $url = 'http://localhost:5173'
   Write-Host "Opening $url in your default browser..."
   Start-Process $url
+} else {
+  Write-Host "Not opening browser because one of the servers is not ready yet."
 }
 
 Write-Host "Done. Close the two spawned PowerShell windows to stop servers."

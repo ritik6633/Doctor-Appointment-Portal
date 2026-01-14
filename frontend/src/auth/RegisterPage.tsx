@@ -1,7 +1,8 @@
-import { Box, Button, Container, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Container, Stack, TextField, Typography } from '@mui/material';
 import { useState } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { register } from '../api/authApi';
+import { GlassCard } from '../components/GlassCard';
 
 export function RegisterPage() {
   const [name, setName] = useState('');
@@ -14,44 +15,75 @@ export function RegisterPage() {
 
   return (
     <Container maxWidth="sm">
-      <Box sx={{ mt: 8 }}>
-        <Typography variant="h4" sx={{ mb: 2 }}>
-          Register (Patient)
-        </Typography>
+      <Box sx={{ mt: { xs: 4, md: 10 } }}>
+        <GlassCard>
+          <Stack spacing={2}>
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: 0.2 }}>
+                Patient Registration
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Create a patient account. Doctor and Hospital Admin accounts are created by admins.
+              </Typography>
+            </Box>
 
-        <Box component="form"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setError(null);
-            try {
-              await register({ name, email, password, dateOfBirth });
-              navigate('/login');
-            } catch (err: any) {
-              setError(err?.response?.data?.message ?? 'Registration failed');
-            }
-          }}
-        >
-          <TextField fullWidth label="Name" margin="normal" value={name} onChange={(e) => setName(e.target.value)} />
-          <TextField fullWidth label="Email" margin="normal" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <TextField fullWidth label="Password" type="password" margin="normal" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <TextField fullWidth label="Date of Birth (YYYY-MM-DD)" margin="normal" value={dateOfBirth} onChange={(e) => setDob(e.target.value)} />
+            {error && (
+              <Alert severity="error" variant="outlined">
+                {error}
+              </Alert>
+            )}
 
-          {error && (
-            <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-              {error}
-            </Typography>
-          )}
+            <Box
+              component="form"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setError(null);
+                try {
+                  await register({ name, email, password, dateOfBirth });
+                  navigate('/login');
+                } catch (err: any) {
+                  setError(err?.response?.data?.message ?? 'Registration failed');
+                }
+              }}
+            >
+              <Stack spacing={2}>
+                <TextField label="Full name" value={name} onChange={(e) => setName(e.target.value)} fullWidth />
+                <TextField
+                  label="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  fullWidth
+                />
+                <TextField
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  fullWidth
+                />
+                <TextField
+                  label="Date of Birth"
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDob(e.target.value)}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                  fullWidth
+                />
 
-          <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
-            Register
-          </Button>
+                <Button type="submit" variant="contained" size="large">
+                  Create patient account
+                </Button>
 
-          <Button component={RouterLink} to="/login" fullWidth sx={{ mt: 1 }}>
-            Back to login
-          </Button>
-        </Box>
+                <Button component={RouterLink} to="/login" variant="text">
+                  Back to login
+                </Button>
+              </Stack>
+            </Box>
+          </Stack>
+        </GlassCard>
       </Box>
     </Container>
   );
 }
-

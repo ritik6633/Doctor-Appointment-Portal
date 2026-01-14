@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Box,
+  Alert,
   Button,
   Container,
   FormControl,
   InputLabel,
   MenuItem,
   Select,
+  Stack,
   TextField,
   Typography,
 } from '@mui/material';
@@ -14,6 +15,8 @@ import { useAuth } from '../../auth/AuthContext';
 import { listDoctorsByHospital } from '../../api/doctorApi';
 import { upsertDoctorAvailability } from '../../api/hospitalAdminApi';
 import { http } from '../../api/http';
+import PageHeader from '../../components/PageHeader';
+import { GlassCard } from '../../components/GlassCard';
 
 const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'] as const;
 
@@ -42,7 +45,7 @@ export function ManageAvailabilityPage() {
   const [startTime, setStart] = useState('10:00:00');
   const [endTime, setEnd] = useState('13:00:00');
   const [slotDurationMinutes, setSlot] = useState(15);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [existing, setExisting] = useState<Availability | null>(null);
 
@@ -92,102 +95,110 @@ export function ManageAvailabilityPage() {
   }, [doctorId, dayOfWeek]);
 
   return (
-    <Container maxWidth="sm">
-      <Box>
-        <Typography variant="h5" sx={{ mb: 2 }}>
-          Manage Doctor Availability
-        </Typography>
+    <Container maxWidth="md">
+      <PageHeader
+        title="Doctor Availability"
+        subtitle="Set weekly schedule used for booking"
+        breadcrumbs={[{ label: 'Hospital Admin', to: '/hospital-admin/dashboard' }, { label: 'Availability' }]}
+        chip={hospitalId ? `Hospital #${hospitalId}` : undefined}
+      />
 
-        <FormControl fullWidth sx={{ mb: 2 }} disabled={!hospitalId}>
-          <InputLabel>Doctor</InputLabel>
-          <Select value={doctorId} label="Doctor" onChange={(e) => setDoctorId(e.target.value as any)}>
-            {doctors.map((d) => (
-              <MenuItem key={d.id} value={d.id}>
-                {d.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      {msg && (
+        <Alert sx={{ mb: 2 }} severity={msg.type} variant="outlined">
+          {msg.text}
+        </Alert>
+      )}
 
-        <FormControl fullWidth sx={{ mb: 2 }}>
-          <InputLabel>Day of week</InputLabel>
-          <Select value={dayOfWeek} label="Day of week" onChange={(e) => setDay(e.target.value as any)}>
-            {DAYS.map((d) => (
-              <MenuItem key={d} value={d}>
-                {d}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      <Stack spacing={2}>
+        <GlassCard>
+          <Stack spacing={2}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+              <FormControl fullWidth disabled={!hospitalId}>
+                <InputLabel>Doctor</InputLabel>
+                <Select value={doctorId} label="Doctor" onChange={(e) => setDoctorId(e.target.value as any)}>
+                  {doctors.map((d) => (
+                    <MenuItem key={d.id} value={d.id}>
+                      {d.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-        {typeof doctorId === 'number' && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {existing
-              ? `Existing for ${dayOfWeek}: ${existing.startTime} - ${existing.endTime} (${existing.slotDurationMinutes} min)`
-              : `No availability set yet for ${dayOfWeek}.`}
-          </Typography>
-        )}
+              <FormControl fullWidth>
+                <InputLabel>Day of week</InputLabel>
+                <Select value={dayOfWeek} label="Day of week" onChange={(e) => setDay(e.target.value as any)}>
+                  {DAYS.map((d) => (
+                    <MenuItem key={d} value={d}>
+                      {d}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Stack>
 
-        <TextField
-          fullWidth
-          sx={{ mb: 2 }}
-          label="Start time"
-          value={startTime}
-          onChange={(e) => setStart(e.target.value)}
-          error={!!timeError}
-          helperText={timeError ?? 'Example: 10:00:00'}
-        />
-        <TextField
-          fullWidth
-          sx={{ mb: 2 }}
-          label="End time"
-          value={endTime}
-          onChange={(e) => setEnd(e.target.value)}
-          error={!!timeError}
-        />
-        <TextField
-          fullWidth
-          sx={{ mb: 2 }}
-          label="Slot duration (minutes)"
-          type="number"
-          value={slotDurationMinutes}
-          onChange={(e) => setSlot(Number(e.target.value))}
-          error={!!slotError}
-          helperText={slotError ?? ''}
-        />
+            {typeof doctorId === 'number' && (
+              <Typography variant="body2" color="text.secondary">
+                {existing
+                  ? `Existing for ${dayOfWeek}: ${existing.startTime} - ${existing.endTime} (${existing.slotDurationMinutes} min)`
+                  : `No availability set yet for ${dayOfWeek}.`}
+              </Typography>
+            )}
 
-        <Button
-          variant="contained"
-          fullWidth
-          disabled={!canSave}
-          onClick={async () => {
-            setMsg(null);
-            try {
-              // Normalize time to HH:mm:ss
-              const start = startTime.length === 5 ? `${startTime}:00` : startTime;
-              const end = endTime.length === 5 ? `${endTime}:00` : endTime;
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+              <TextField
+                fullWidth
+                label="Start time"
+                value={startTime}
+                onChange={(e) => setStart(e.target.value)}
+                error={!!timeError}
+                helperText={timeError ?? 'Example: 10:00:00'}
+              />
+              <TextField
+                fullWidth
+                label="End time"
+                value={endTime}
+                onChange={(e) => setEnd(e.target.value)}
+                error={!!timeError}
+              />
+            </Stack>
 
-              await upsertDoctorAvailability(doctorId as number, {
-                dayOfWeek,
-                startTime: start,
-                endTime: end,
-                slotDurationMinutes,
-              });
-              setMsg('Availability saved');
-            } catch (e: any) {
-              setMsg(e?.response?.data?.message ?? 'Failed');
-            }
-          }}
-        >
-          Save
-        </Button>
+            <TextField
+              fullWidth
+              label="Slot duration (minutes)"
+              type="number"
+              value={slotDurationMinutes}
+              onChange={(e) => setSlot(Number(e.target.value))}
+              error={!!slotError}
+              helperText={slotError ?? ''}
+            />
 
-        {msg && (
-          <Typography sx={{ mt: 2 }} color={msg.toLowerCase().includes('fail') ? 'error' : 'primary'}>
-            {msg}
-          </Typography>
-        )}
-      </Box>
+            <Button
+              variant="contained"
+              disabled={!canSave}
+              onClick={async () => {
+                setMsg(null);
+                try {
+                  // Normalize time to HH:mm:ss
+                  const start = startTime.length === 5 ? `${startTime}:00` : startTime;
+                  const end = endTime.length === 5 ? `${endTime}:00` : endTime;
+
+                  await upsertDoctorAvailability(doctorId as number, {
+                    dayOfWeek,
+                    startTime: start,
+                    endTime: end,
+                    slotDurationMinutes,
+                  });
+                  setMsg({ type: 'success', text: 'Availability saved' });
+                } catch (e: any) {
+                  setMsg({ type: 'error', text: e?.response?.data?.message ?? 'Failed' });
+                }
+              }}
+            >
+              Save
+            </Button>
+          </Stack>
+        </GlassCard>
+      </Stack>
     </Container>
   );
 }

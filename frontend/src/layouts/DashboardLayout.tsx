@@ -30,6 +30,8 @@ function navItemsForRole(role: Role) {
       return [
         { label: 'Dashboard', to: '/developer-admin/dashboard' },
         { label: 'Manage Hospitals', to: '/developer-admin/hospitals' },
+        { label: 'Create Hospital Admin', to: '/developer-admin/hospital-admins/create' },
+        { label: 'Manage Hospital Admins', to: '/developer-admin/hospital-admins' },
       ];
   }
 }
@@ -46,23 +48,36 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
 
-      <AppBar position="fixed" sx={{ zIndex: (t) => t.zIndex.drawer + 1 }}>
+      <AppBar
+        position="fixed"
+        elevation={0}
+        sx={{
+          zIndex: (t) => t.zIndex.drawer + 1,
+          borderBottom: '1px solid rgba(255,255,255,.10)',
+          backdropFilter: 'blur(10px)',
+        }}
+      >
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Typography variant="h6" noWrap>
-            Doctor Appointment Portal
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <Typography variant="body2">{auth.role}</Typography>
-            <Button
-              color="inherit"
-              onClick={() => {
-                logout();
-                navigate('/login');
-              }}
-            >
-              Logout
-            </Button>
+          <Box>
+            <Typography variant="h6" noWrap sx={{ fontWeight: 900, letterSpacing: 0.2 }}>
+              Doctor Appointment Portal
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {auth.role}
+              {auth.hospitalId ? ` • Hospital #${auth.hospitalId}` : ''}
+            </Typography>
           </Box>
+
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+          >
+            Logout
+          </Button>
         </Toolbar>
       </AppBar>
 
@@ -71,14 +86,24 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+          [`& .MuiDrawer-paper`]: {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+            borderRight: '1px solid rgba(255,255,255,.10)',
+            backdropFilter: 'blur(10px)',
+          },
         }}
       >
         <Toolbar />
-        <Box sx={{ overflow: 'auto' }}>
+        <Box sx={{ overflow: 'auto', p: 1 }}>
           <List>
             {items.map((item) => (
-              <ListItemButton key={item.to} component={RouterLink} to={item.to}>
+              <ListItemButton
+                key={item.to}
+                component={RouterLink}
+                to={item.to}
+                sx={{ borderRadius: 2, mb: 0.5 }}
+              >
                 <ListItemText primary={item.label} />
               </ListItemButton>
             ))}
@@ -86,7 +111,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </Box>
       </Drawer>
 
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 3 } }}>
         <Toolbar />
         {children}
       </Box>

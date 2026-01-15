@@ -15,30 +15,30 @@ VALUES
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 
 -- Users
--- Developer Admin (password: Dev@123)
+-- Developer Admin (password: Developer123)
 INSERT INTO users (id, name, email, password, role, phone, gender, date_of_birth, hospital_id, active)
 VALUES
-  (1, 'Developer Admin', 'devadmin@portal.com', '$2a$10$CMoQeS8cMbYlHqosjKpK6e3m0kUT7wAHXHkGv0b9Q7X5fHgdg8y02', 'DEVELOPER_ADMIN', '9000000001', 'MALE', '1995-01-01', NULL, TRUE)
+  (1, 'Developer Admin', 'devadmin@portal.com', '$2b$10$XG9lhxgEXuorpH0NmAd4oOkdEPeU8Fcf6LryAttzE7DQnc188Ekru', 'DEVELOPER_ADMIN', '9000000001', 'MALE', '1995-01-01', NULL, TRUE)
 ON DUPLICATE KEY UPDATE email=VALUES(email);
 
--- Hospital Admin for CityCare (password: Admin@123)
+-- Hospital Admin for CityCare (password: Hospital123)
 INSERT INTO users (id, name, email, password, role, phone, gender, date_of_birth, hospital_id, active)
 VALUES
-  (2, 'Hospital Admin', 'admin@citycare.com', '$2a$10$0wX3n2lSll8lLW7u2fAq8eu8xV3kVt2lRz1pGz6y5g4M4LRf6f0Ku', 'HOSPITAL_ADMIN', '9000000002', 'FEMALE', '1992-02-02', 1, TRUE)
+  (2, 'Hospital Admin', 'admin@citycare.com', '$2b$10$ciuUTIY.yG8/3mHAaFASleAyij8QG3.DPL3v29StcitS3uWHRD8yi', 'HOSPITAL_ADMIN', '9000000002', 'FEMALE', '1992-02-02', 1, TRUE)
 ON DUPLICATE KEY UPDATE email=VALUES(email);
 
--- Doctors (password: Doc@123)
+-- Doctors (password for each: Rahul123 / Neha123)
 INSERT INTO users (id, name, email, password, role, phone, gender, date_of_birth, hospital_id, active)
 VALUES
-  (3, 'Dr. Rahul Sharma', 'rahul.sharma@citycare.com', '$2a$10$8u8vGkQq3EwJ/eJ3u7n2PejVqzqkq2M.0QAXw7p6pWq0gXlBq2x3G', 'DOCTOR', '9000000003', 'MALE', '1988-03-03', 1, TRUE),
-  (4, 'Dr. Neha Singh', 'neha.singh@citycare.com', '$2a$10$8u8vGkQq3EwJ/eJ3u7n2PejVqzqkq2M.0QAXw7p6pWq0gXlBq2x3G', 'DOCTOR', '9000000004', 'FEMALE', '1987-04-04', 1, TRUE)
+  (3, 'Dr. Rahul Sharma', 'rahul.sharma@citycare.com', '$2b$10$bmIffb9n2tiDa/J8c5bna.11SM1vD/SbvspWwKe7oLBMLeClZfIZu', 'DOCTOR', '9000000003', 'MALE', '1988-03-03', 1, TRUE),
+  (4, 'Dr. Neha Singh', 'neha.singh@citycare.com', '$2b$10$7eglh2qU6ujObR.T2Jd7.uOdLNNN1RNN1jD4dCUkiadk7Eizre2cK', 'DOCTOR', '9000000004', 'FEMALE', '1987-04-04', 1, TRUE)
 ON DUPLICATE KEY UPDATE email=VALUES(email);
 
--- Patients (password: Patient@123)
+-- Patients (password for each: Amit123 / Priya123)
 INSERT INTO users (id, name, email, password, role, phone, gender, date_of_birth, hospital_id, active)
 VALUES
-  (5, 'Amit Patel', 'amit.patel@gmail.com', '$2a$10$JjG8pJt9c2xwR8Gq6v0s1eK3x2uXGq0xHfZq3PpZb9hQv0m7QzqQK', 'PATIENT', '9000000005', 'MALE', '1999-05-05', NULL, TRUE),
-  (6, 'Priya Desai', 'priya.desai@gmail.com', '$2a$10$JjG8pJt9c2xwR8Gq6v0s1eK3x2uXGq0xHfZq3PpZb9hQv0m7QzqQK', 'PATIENT', '9000000006', 'FEMALE', '2000-06-06', NULL, TRUE)
+  (5, 'Amit Patel', 'amit.patel@gmail.com', '$2b$10$ztb.ua.RJW63ZTNxUz8YpeOxBBzFstmjME9bqYzORalT9lBwU4Y0e', 'PATIENT', '9000000005', 'MALE', '1999-05-05', NULL, TRUE),
+  (6, 'Priya Desai', 'priya.desai@gmail.com', '$2b$10$CYxXI0me2ati8G/dZtWGKuQtTPy/z.BDzJGu8Dr5l2Qi8be.Qn9MG', 'PATIENT', '9000000006', 'FEMALE', '2000-06-06', NULL, TRUE)
 ON DUPLICATE KEY UPDATE email=VALUES(email);
 
 -- Doctors table
